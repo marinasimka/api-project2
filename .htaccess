@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api_project/
+    
+    # Разрешить доступ к реальным файлам и папкам
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Все остальные запросы перенаправлять на index.php
+    RewriteRule ^(.*)$ index.php?url=$1 [L,QSA]
+</IfModule>

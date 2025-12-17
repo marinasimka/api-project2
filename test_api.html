@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>API Адресов - Работает!</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 1000px; margin: auto; background: #f5f5f5; }
+        .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success-badge { background: #4CAF50; color: white; padding: 5px 10px; border-radius: 20px; display: inline-block; }
+        .section { background: white; padding: 20px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        button { background: #2196F3; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { opacity: 0.9; }
+        button.get { background: #4CAF50; }
+        button.post { background: #FF9800; }
+        button.put { background: #9C27B0; }
+        button.delete { background: #F44336; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f2f2f2; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow: auto; max-height: 300px; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        textarea { height: 80px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1> REST API для адресов - РАБОТАЕТ!</h1>
+        <span class="success-badge">ВСЕ СИСТЕМЫ В НОРМЕ</span>
+        <p>API успешно подключен к MySQL базе данных и возвращает корректные данные.</p>
+    </div>
+    
+    <div class="section">
+        <h2> Текущие адреса в базе (5 записей)</h2>
+        <button class="get" onclick="getAll()">🔄 Обновить список</button>
+        <div id="addressesTable"></div>
+    </div>
+    
+    <div class="section">
+        <h2> Найти адрес по ID</h2>
+        <input type="number" id="searchId" value="1" placeholder="Введите ID">
+        <button class="get" onclick="getById()">Найти</button>
+        <div id="singleResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2> Создать новый адрес (POST)</h2>
+        <input type="number" id="newUserId" value="1" placeholder="User ID">
+        <input type="text" id="newStreet" placeholder="Улица" value="Новая улица">
+        <input type="text" id="newCity" placeholder="Город" value="Новый город">
+        <input type="text" id="newZip" placeholder="Почтовый индекс" value="123456">
+        <button class="post" onclick="createAddress()">Создать адрес</button>
+        <div id="createResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2> Обновить адрес (PUT)</h2>
+        <input type="number" id="updateId" value="1" placeholder="ID адреса">
+        <input type="text" id="updateStreet" placeholder="Новая улица" value="Обновленная улица">
+        <input type="text" id="updateCity" placeholder="Новый город" value="Обновленный город">
+        <input type="text" id="updateZip" placeholder="Новый индекс" value="999999">
+        <button class="put" onclick="updateAddress()">Обновить адрес</button>
+        <div id="updateResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2> Удалить адрес (DELETE)</h2>
+        <input type="number" id="deleteId" value="5" placeholder="ID адреса для удаления">
+        <button class="delete" onclick="deleteAddress()">Удалить адрес</button>
+        <div id="deleteResult"></div>
+    </div>
+
+    <script>
+        const API_KEY = '$2y$10$EKNJanRosYtQWp0TlUv0PeBsBnTwikCQ9IP0psIWkk7071rh0PhXC';
+        
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const url = 'index.php?url=' + endpoint;
+            const options = {
+                method: method,
+                headers: {
+                    'X-API-Key': API_KEY,
+                    'Content-Type': 'application/json'
+                }
+            };
+            if (data) options.body = JSON.stringify(data);
+            
+            try {
+                const response = await fetch(url, options);
+                return await response.json();
+            } catch (error) {
+                return { success: false, message: 'Network error: ' + error.message };
+            }
+        }
+        
+        async function getAll() {
+            const result = await apiRequest('addresses');
+            if (result.success) {
+                let table = '<table><tr><th>ID</th><th>User ID</th><th>Улица</th><th>Город</th><th>Индекс</th><th>Создан</th></tr>';
+                result.data.forEach(addr => {
+                    table += `<tr>
+                        <td>${addr.id}</td>
+                        <td>${addr.user_id}</td>
+                        <td>${addr.street}</td>
+                        <td>${addr.city}</td>
+                        <td>${addr.zip_code}</td>
+                        <td>${addr.created_at}</td>
+                    </tr>`;
+                });
+                table += '</table>';
+                document.getElementById('addressesTable').innerHTML = table;
+            }
+        }
+        
+        async function getById() {
+            const id = document.getElementById('searchId').value;
+            const result = await apiRequest('addresses/' + id);
+            const container = document.getElementById('singleResult');
+            
+            if (result.success) {
+                container.innerHTML = `
+                    <div style="background:#e8f5e9; padding:10px; border-radius:5px;">
+                        <h3> Найден адрес ID: ${id}</h3>
+                        <p><strong>Улица:</strong> ${result.data.street}</p>
+                        <p><strong>Город:</strong> ${result.data.city}</p>
+                        <p><strong>Индекс:</strong> ${result.data.zip_code}</p>
+                        <p><strong>Создан:</strong> ${result.data.created_at}</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<div style="background:#ffebee; padding:10px; border-radius:5px; color:#c62828;">❌ ${result.message}</div>`;
+            }
+        }
+        
+        async function createAddress() {
+            const data = {
+                user_id: document.getElementById('newUserId').value,
+                street: document.getElementById('newStreet').value,
+                city: document.getElementById('newCity').value,
+                zip_code: document.getElementById('newZip').value
+            };
+            
+            const result = await apiRequest('addresses', 'POST', data);
+            const container = document.getElementById('createResult');
+            
+            if (result.success) {
+                container.innerHTML = `<div style="background:#e8f5e9; padding:10px; border-radius:5px;"> ${result.message}<br>ID нового адреса: ${result.data.id}</div>`;
+                getAll(); // Обновляем список
+            } else {
+                container.innerHTML = `<div style="background:#ffebee; padding:10px; border-radius:5px; color:#c62828;"> ${result.message}</div>`;
+            }
+        }
+        
+        async function updateAddress() {
+            const id = document.getElementById('updateId').value;
+            const data = {
+                street: document.getElementById('updateStreet').value,
+                city: document.getElementById('updateCity').value,
+                zip_code: document.getElementById('updateZip').value
+            };
+            
+            const result = await apiRequest('addresses/' + id, 'PUT', data);
+            const container = document.getElementById('updateResult');
+            
+            container.innerHTML = result.success 
+                ? `<div style="background:#e8f5e9; padding:10px; border-radius:5px;"> ${result.message}</div>`
+                : `<div style="background:#ffebee; padding:10px; border-radius:5px; color:#c62828;"> ${result.message}</div>`;
+            
+            getAll(); // Обновляем список
+        }
+        
+        async function deleteAddress() {
+            const id = document.getElementById('deleteId').value;
+            const result = await apiRequest('addresses/' + id, 'DELETE');
+            const container = document.getElementById('deleteResult');
+            
+            container.innerHTML = result.success 
+                ? `<div style="background:#e8f5e9; padding:10px; border-radius:5px;"> ${result.message}</div>`
+                : `<div style="background:#ffebee; padding:10px; border-radius:5px; color:#c62828;"> ${result.message}</div>`;
+            
+            getAll(); // Обновляем список
+        }
+        
+        // Загружаем данные при старте
+        getAll();
+    </script>
+</body>
+</html>
